@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12141a">
+<title>Dongle Re-Pair</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12141a;
+    --surface:#1a1d26;
+    --surface-2:#20242f;
+    --border:#262b38;
+    --text:#e8eaf0;
+    --text-dim:#8b93a7;
+    --teal:#4fd8c4;
+    --teal-dim:rgba(79,216,196,0.14);
+    --amber:#f2a93b;
+    --amber-dim:rgba(242,169,59,0.14);
+    --danger:#e2574c;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Mono',monospace;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:88px;
+  }
+  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
+  .wrap{max-width:640px;margin:0 auto;padding:20px 16px 8px;}
+
+  header.top{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 82%, transparent);padding-top:20px;}
+  .title-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;}
+  h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim);font-size:12.5px;margin:4px 0 16px;line-height:1.5;}
+
+  .progress-block{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+  .ring{position:relative;width:56px;height:56px;flex:none;}
+  .ring svg{transform:rotate(-90deg);}
+  .ring-track{stroke:var(--border);}
+  .ring-fill{stroke:var(--teal);stroke-linecap:round;transition:stroke-dashoffset .4s ease;}
+  .ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;}
+  .progress-text{font-size:13px;color:var(--text-dim);}
+  .progress-text b{color:var(--text);font-weight:600;}
+
+  details.guide{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden;}
+  details.guide summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;color:var(--amber);}
+  details.guide summary::-webkit-details-marker{display:none;}
+  details.guide summary .chev{transition:transform .2s;color:var(--text-dim);}
+  details.guide[open] summary .chev{transform:rotate(90deg);}
+  .guide-body{padding:0 14px 14px;font-size:12.5px;color:var(--text-dim);line-height:1.6;}
+  .guide-body ol{margin:0;padding-left:18px;}
+  .guide-body li{margin-bottom:8px;}
+  .guide-body li b{color:var(--text);}
+  .guide-note{margin-top:10px;padding:9px 10px;background:var(--amber-dim);border-radius:7px;color:var(--text);font-size:12px;}
+
+  .hid-row{display:flex;gap:8px;margin-bottom:10px;}
+  .hid-info{font-size:11.5px;color:var(--teal);margin-bottom:10px;min-height:14px;word-break:break-all;}
+  .hid-custom{margin-top:10px;border-top:1px solid var(--border);padding-top:10px;}
+  .hid-custom label{display:block;font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;}
+  .hid-custom-row{display:flex;gap:8px;}
+  .hid-custom-row input{flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:inherit;font-size:12px;padding:8px 9px;}
+  .hid-custom-row input:focus{outline:none;border-color:var(--teal);}
+  .hid-log{margin-top:10px;background:#0c0d12;border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:10.5px;line-height:1.6;color:var(--text-dim);max-height:160px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;}
+  .hid-warn{margin-bottom:10px;padding:9px 10px;background:rgba(226,87,76,0.12);border-radius:7px;color:var(--text);font-size:12px;line-height:1.5;}
+
+  .filters{display:flex;gap:6px;margin-bottom:14px;}
+  .filters button{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text-dim);padding:8px 0;border-radius:8px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;}
+  .filters button.active{background:var(--teal-dim);border-color:var(--teal);color:var(--teal);}
+
+  .unit{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;transition:border-color .2s;}
+  .unit.repaired{border-color:rgba(79,216,196,0.35);}
+  .unit-head{display:flex;align-items:center;gap:10px;padding:12px 12px;cursor:pointer;}
+  .status-dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--border);}
+  .unit.repaired .status-dot{background:var(--teal);}
+  .unit.progress .status-dot{background:var(--amber);}
+  .unit-label{flex:1;min-width:0;}
+  .unit-label input{background:none;border:none;color:var(--text);font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14.5px;width:100%;padding:2px 0;}
+  .unit-label input:focus{outline:none;border-bottom:1px solid var(--teal);}
+  .unit-meta{font-size:11px;color:var(--text-dim);margin-top:1px;}
+  .badge{font-size:10.5px;padding:3px 8px;border-radius:20px;font-weight:600;white-space:nowrap;}
+  .badge.repaired{background:var(--teal-dim);color:var(--teal);}
+  .badge.pending{background:var(--surface-2);color:var(--text-dim);}
+  .badge.progress{background:var(--amber-dim);color:var(--amber);}
+  .chev-btn{color:var(--text-dim);transition:transform .2s;flex:none;}
+  .unit.open .chev-btn{transform:rotate(90deg);}
+
+  .unit-body{padding:0 12px 14px;display:none;}
+  .unit.open .unit-body{display:block;}
+  .steps{margin:4px 0 12px;}
+  .step{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;line-height:1.5;}
+  .step:last-child{border-bottom:none;}
+  .step input[type=checkbox]{margin-top:2px;width:16px;height:16px;accent-color:var(--teal);flex:none;}
+  .step label{color:var(--text);flex:1;}
+  .step.done label{color:var(--text-dim);text-decoration:line-through;text-decoration-color:var(--border);}
+
+  .field-row{display:flex;gap:8px;margin-bottom:8px;}
+  .field{flex:1;min-width:0;}
+  .field label{display:block;font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+  .field input{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:inherit;font-size:12.5px;padding:8px 9px;}
+  .field input:focus{outline:none;border-color:var(--teal);}
+
+  .unit-actions{display:flex;gap:8px;margin-top:10px;}
+  .btn{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12.5px;border-radius:7px;padding:9px 12px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);cursor:pointer;flex:1;}
+  .btn.primary{background:var(--teal);border-color:var(--teal);color:#0b1512;}
+  .btn.primary.unrepair{background:transparent;border-color:var(--teal);color:var(--teal);}
+  .btn.ghost{flex:none;color:var(--danger);border-color:transparent;background:none;padding:9px 8px;}
+
+  .add-row{display:flex;justify-content:center;margin:16px 0 6px;}
+  .add-row button{background:none;border:1px dashed var(--border);color:var(--text-dim);font-family:inherit;font-size:12.5px;padding:10px 16px;border-radius:9px;cursor:pointer;width:100%;}
+
+  .toolbar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:6;}
+  .toolbar button{flex:1;background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:600;padding:10px 4px;border-radius:8px;cursor:pointer;}
+  .toolbar button.warn{color:var(--danger);}
+
+  .empty{text-align:center;color:var(--text-dim);font-size:12.5px;padding:30px 10px;}
+
+  @media print{
+    body *{visibility:hidden;}
+    header.top,.guide,.filters,.add-row,.toolbar{display:none !important;}
+    #printSheet, #printSheet *{visibility:visible;}
+    #printSheet{position:absolute;top:0;left:0;width:100%;display:grid !important;grid-template-columns:repeat(3,1fr);gap:14px;padding:20px;}
+    .label-tag{border:1.5px dashed #999;border-radius:8px;padding:14px 6px;text-align:center;}
+    .label-tag .num{font-size:26px;font-weight:700;font-family:'Space Grotesk',sans-serif;}
+    .label-tag .room{font-size:11px;margin-top:4px;font-family:'IBM Plex Mono',monospace;}
+  }
+  #printSheet{display:none;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="title-row">
+      <h1>Dongle Re-Pair</h1>
+    </div>
+    <p class="sub">Re-pairing 23 mixed Logitech keyboard &amp; mouse sets to their receivers, one unit at a time.</p>
+
+    <div class="progress-block">
+      <div class="ring">
+        <svg width="56" height="56" viewBox="0 0 56 56">
+          <circle class="ring-track" cx="28" cy="28" r="24" fill="none" stroke-width="5"/>
+          <circle id="ringFill" class="ring-fill" cx="28" cy="28" r="24" fill="none" stroke-width="5" stroke-dasharray="150.8" stroke-dashoffset="150.8"/>
+        </svg>
+        <div class="ring-num" id="ringNum">0%</div>
+      </div>
+      <div class="progress-text"><b id="repairedCount">0</b> / <span id="totalCount">23</span> re-paired &amp; labeled</div>
+    </div>
+  </header>
+
+  <details class="guide" id="guideBox" open>
+    <summary>How to re-pair a set <span class="chev">›</span></summary>
+    <div class="guide-body">
+      <ol>
+        <li><b>Isolate.</b> Unplug every other Logitech receiver nearby — you want only one active during the test.</li>
+        <li><b>Power down.</b> Switch off the keyboard and mouse (or pull a battery briefly).</li>
+        <li><b>Plug in</b> the receiver you're working on.</li>
+        <li><b>Find the connect button</b> — a small recessed button on the receiver itself (may need a pin), or on the underside of the keyboard/mouse. Location varies by model.</li>
+        <li><b>Press and hold</b> the connect button for 2–3 seconds.</li>
+        <li><b>Power the device on</b> within ~20 seconds of pressing connect (repeat for keyboard and mouse separately — most models pair them independently).</li>
+        <li><b>Test it</b> — type a key and nudge the mouse. If both respond, it's paired.</li>
+      </ol>
+      <div class="guide-note">Button placement differs across MK270 / MK320 / MK345-style sets. If a set won't re-pair after two tries, note the model below — it may be a true fixed-pair unit with no re-pair option, and matching it to its original receiver by trial is the fallback.</div>
+    </div>
+  </details>
+
+  <details class="guide" id="hidBox">
+    <summary>Try software pairing (experimental) <span class="chev">›</span></summary>
+    <div class="guide-body">
+      <div class="hid-warn">Desktop Chrome or Edge only, receiver plugged in via USB — this does not work on iOS, Android, or Safari. The exact command varies slightly by receiver firmware, since Logitech never published this protocol; the log below shows the raw traffic so you can adjust it if the default doesn't trigger pairing on your units.</div>
+      <div class="hid-row">
+        <button id="hidConnectBtn" class="btn primary">Connect receiver</button>
+        <button id="hidDisconnectBtn" class="btn" style="display:none;">Disconnect</button>
+      </div>
+      <div class="hid-info" id="hidDeviceInfo"></div>
+      <div id="hidActions" style="display:none;">
+        <button id="hidOpenLockBtn" class="btn primary" style="width:100%;">Send: open pairing lock</button>
+        <div class="hid-custom">
+          <label>Custom command (hex bytes after report ID, space-separated)</label>
+          <div class="hid-custom-row">
+            <input type="text" id="hidCustomBytes" placeholder="FF 80 B2 01 00 00">
+            <button id="hidSendCustomBtn" class="btn">Send</button>
+          </div>
+        </div>
+      </div>
+      <div class="hid-log" id="hidLog">Not connected yet.</div>
+    </div>
+  </details>
+
+  <div class="filters">
+    <button class="active" data-filter="all">All</button>
+    <button data-filter="pending">Pending</button>
+    <button data-filter="repaired">Re-paired</button>
+  </div>
+
+  <div id="unitList"></div>
+
+  <div class="add-row"><button id="addUnitBtn">+ Add another set</button></div>
+</div>
+
+<div class="toolbar">
+  <button id="exportBtn">Export CSV</button>
+  <button id="printBtn">Print labels</button>
+  <button id="resetBtn" class="warn">Reset all</button>
+</div>
+
+<div id="printSheet"></div>
+
+<script>
+const STORAGE_KEY = 'dongleRepairUnits_v1';
+const STEP_TEXT = [
+  'Isolated this receiver (others unplugged)',
+  'Powered off keyboard &amp; mouse',
+  'Pressed connect on receiver, powered on keyboard',
+  'Pressed connect on receiver, powered on mouse',
+  'Tested — both respond correctly'
+];
+
+function seedUnits(){
+  const units = [];
+  for(let i=1;i<=23;i++){
+    units.push({
+      id: 'u'+i+'_'+Date.now()+Math.random().toString(36).slice(2,6),
+      label: 'Set '+i,
+      model: '',
+      room: '',
+      notes: '',
+      status: 'pending', // pending | progress | repaired
+      steps: [false,false,false,false,false],
+      open: false
+    });
+  }
+  return units;
+}
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  const seeded = seedUnits();
+  save(seeded);
+  return seeded;
+}
+function save(units){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(units)); }catch(e){}
+}
+
+let units = load();
+let filter = 'all';
+
+function computeStatus(u){
+  if(u.status === 'repaired') return 'repaired';
+  return u.steps.some(s=>s) ? 'progress' : 'pending';
+}
+
+function render(){
+  const listEl = document.getElementById('unitList');
+  const filtered = units.filter(u=>{
+    const st = computeStatus(u);
+    if(filter==='pending') return st !== 'repaired';
+    if(filter==='repaired') return st === 'repaired';
+    return true;
+  });
+
+  if(filtered.length === 0){
+    listEl.innerHTML = '<div class="empty">Nothing here yet.</div>';
+  } else {
+    listEl.innerHTML = filtered.map(u=>unitHTML(u)).join('');
+  }
+
+  // progress
+  const total = units.length;
+  const repairedCt = units.filter(u=>computeStatus(u)==='repaired').length;
+  document.getElementById('repairedCount').textContent = repairedCt;
+  document.getElementById('totalCount').textContent = total;
+  const pct = total ? repairedCt/total : 0;
+  document.getElementById('ringNum').textContent = Math.round(pct*100)+'%';
+  const circumference = 150.8;
+  document.getElementById('ringFill').style.strokeDashoffset = circumference - (circumference*pct);
+
+  attachHandlers();
+  save(units);
+}
+
+function unitHTML(u){
+  const st = computeStatus(u);
+  const badgeText = st === 'repaired' ? 'Re-paired' : (st === 'progress' ? 'In progress' : 'Pending');
+  const stepsHTML = STEP_TEXT.map((txt,i)=>`
+    <div class="step ${u.steps[i]?'done':''}">
+      <input type="checkbox" data-id="${u.id}" data-step="${i}" ${u.steps[i]?'checked':''} id="step_${u.id}_${i}">
+      <label for="step_${u.id}_${i}">${txt}</label>
+    </div>`).join('');
+
+  return `
+  <div class="unit ${st} ${u.open?'open':''}" data-id="${u.id}">
+    <div class="unit-head" data-toggle="${u.id}">
+      <div class="status-dot"></div>
+      <div class="unit-label">
+        <input type="text" value="${escapeAttr(u.label)}" data-field="label" data-id="${u.id}" onclick="event.stopPropagation()">
+        <div class="unit-meta">${u.model ? u.model : 'model not noted'}${u.room ? ' · '+escapeHtml(u.room) : ''}</div>
+      </div>
+      <span class="badge ${st}">${badgeText}</span>
+      <span class="chev-btn">›</span>
+    </div>
+    <div class="unit-body">
+      <div class="steps">${stepsHTML}</div>
+      <div class="field-row">
+        <div class="field"><label>Model</label><input type="text" placeholder="e.g. MK270" value="${escapeAttr(u.model)}" data-field="model" data-id="${u.id}"></div>
+        <div class="field"><label>Room</label><input type="text" placeholder="e.g. Rm 204" value="${escapeAttr(u.room)}" data-field="room" data-id="${u.id}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Notes / identifying marks</label><input type="text" placeholder="e.g. sticker on base" value="${escapeAttr(u.notes)}" data-field="notes" data-id="${u.id}"></div>
+      </div>
+      <div class="unit-actions">
+        ${st === 'repaired'
+          ? `<button class="btn primary unrepair" data-action="unrepair" data-id="${u.id}">Reopen</button>`
+          : `<button class="btn primary" data-action="repair" data-id="${u.id}">Mark re-paired</button>`
+        }
+        <button class="btn ghost" data-action="delete" data-id="${u.id}" title="Remove">✕</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s){ return escapeHtml(s); }
+
+function attachHandlers(){
+  document.querySelectorAll('[data-toggle]').forEach(el=>{
+    el.onclick = ()=>{
+      const id = el.getAttribute('data-toggle');
+      const u = units.find(x=>x.id===id);
+      u.open = !u.open;
+      render();
+    };
+  });
+  document.querySelectorAll('input[data-field]').forEach(el=>{
+    el.onchange = ()=>{
+      const id = el.getAttribute('data-id');
+      const field = el.getAttribute('data-field');
+      const u = units.find(x=>x.id===id);
+      u[field] = el.value;
+      save(units);
+      if(field !== 'label'){ /* meta line update needs re-render */ render(); }
+    };
+    el.onclick = (e)=> e.stopPropagation();
+  });
+  document.querySelectorAll('input[type=checkbox][data-step]').forEach(el=>{
+    el.onchange = ()=>{
+      const id = el.getAttribute('data-id');
+      const step = +el.getAttribute('data-step');
+      const u = units.find(x=>x.id===id);
+      u.steps[step] = el.checked;
+      if(u.status !== 'repaired'){ u.status = u.steps.some(s=>s) ? 'progress' : 'pending'; }
+      render();
+      // keep this card open and scrolled to it
+      const card = document.querySelector(`.unit[data-id="${id}"]`);
+      if(card){ card.classList.add('open'); const body=card.querySelector('.unit-body'); if(body) body.style.display='block'; }
+    };
+  });
+  document.querySelectorAll('[data-action="repair"]').forEach(el=>{
+    el.onclick = ()=>{
+      const id = el.getAttribute('data-id');
+      const u = units.find(x=>x.id===id);
+      u.status = 'repaired';
+      u.steps = [true,true,true,true,true];
+      render();
+    };
+  });
+  document.querySelectorAll('[data-action="unrepair"]').forEach(el=>{
+    el.onclick = ()=>{
+      const id = el.getAttribute('data-id');
+      const u = units.find(x=>x.id===id);
+      u.status = 'progress';
+      u.open = true;
+      render();
+    };
+  });
+  document.querySelectorAll('[data-action="delete"]').forEach(el=>{
+    el.onclick = ()=>{
+      const id = el.getAttribute('data-id');
+      if(!confirm('Remove this set from the tracker?')) return;
+      units = units.filter(x=>x.id!==id);
+      render();
+    };
+  });
+}
+
+document.getElementById('addUnitBtn').onclick = ()=>{
+  const n = units.length + 1;
+  units.push({
+    id: 'u'+n+'_'+Date.now()+Math.random().toString(36).slice(2,6),
+    label: 'Set '+n, model:'', room:'', notes:'',
+    status:'pending', steps:[false,false,false,false,false], open:true
+  });
+  render();
+};
+
+document.querySelectorAll('.filters button').forEach(btn=>{
+  btn.onclick = ()=>{
+    document.querySelectorAll('.filters button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    filter = btn.getAttribute('data-filter');
+    render();
+  };
+});
+
+document.getElementById('exportBtn').onclick = ()=>{
+  const rows = [['Set','Model','Room','Notes','Status']];
+  units.forEach(u=> rows.push([u.label,u.model,u.room,u.notes,computeStatus(u)]));
+  const csv = rows.map(r=> r.map(c=>`"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'dongle-repair-log.csv';
+  a.click();
+};
+
+document.getElementById('printBtn').onclick = ()=>{
+  const repaired = units.filter(u=>computeStatus(u)==='repaired');
+  const sheet = document.getElementById('printSheet');
+  if(repaired.length===0){ alert('No re-paired sets yet — mark some as repaired first.'); return; }
+  sheet.innerHTML = repaired.map(u=>`
+    <div class="label-tag">
+      <div class="num">${escapeHtml(u.label)}</div>
+      <div class="room">${escapeHtml(u.room || '—')}</div>
+    </div>`).join('');
+  window.print();
+};
+
+document.getElementById('resetBtn').onclick = ()=>{
+  if(!confirm('Reset the tracker back to 23 blank sets? This clears all progress.')) return;
+  if(!confirm('Really sure? This cannot be undone.')) return;
+  units = seedUnits();
+  render();
+};
+
+render();
+
+/* ---- Experimental WebHID software pairing ---- */
+let hidDevice = null;
+
+function hidLog(msg){
+  const el = document.getElementById('hidLog');
+  const time = new Date().toLocaleTimeString();
+  const line = `[${time}] ${msg}`;
+  el.textContent = (el.textContent === 'Not connected yet.') ? line : el.textContent + '\n' + line;
+  el.scrollTop = el.scrollHeight;
+}
+
+function hex(n, len){ return '0x'+n.toString(16).padStart(len,'0'); }
+
+document.getElementById('hidConnectBtn').onclick = async ()=>{
+  if(!('hid' in navigator)){
+    hidLog('WebHID isn\'t available in this browser. Open this page in Chrome or Edge on a desktop or laptop — not supported on iOS, Android, or Safari.');
+    return;
+  }
+  try{
+    const devices = await navigator.hid.requestDevice({ filters: [{ vendorId: 0x046D }] });
+    if(!devices || devices.length === 0){ hidLog('No device selected.'); return; }
+    hidDevice = devices[0];
+    await hidDevice.open();
+    document.getElementById('hidDeviceInfo').textContent =
+      `${hidDevice.productName || 'Unnamed device'} — VID ${hex(hidDevice.vendorId,4)} / PID ${hex(hidDevice.productId,4)}`;
+    hidLog(`Connected to ${hidDevice.productName || 'device'} (${hex(hidDevice.vendorId,4)}/${hex(hidDevice.productId,4)}).`);
+    document.getElementById('hidActions').style.display = 'block';
+    document.getElementById('hidConnectBtn').style.display = 'none';
+    document.getElementById('hidDisconnectBtn').style.display = 'block';
+    hidDevice.oninputreport = (e)=>{
+      const bytes = Array.from(new Uint8Array(e.data.buffer)).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+      hidLog(`← report 0x${e.reportId.toString(16)}: ${bytes}`);
+    };
+  }catch(err){
+    hidLog('Connection failed: '+err.message);
+  }
+};
+
+document.getElementById('hidDisconnectBtn').onclick = async ()=>{
+  if(hidDevice){ try{ await hidDevice.close(); }catch(e){} }
+  hidDevice = null;
+  document.getElementById('hidActions').style.display = 'none';
+  document.getElementById('hidConnectBtn').style.display = 'block';
+  document.getElementById('hidDisconnectBtn').style.display = 'none';
+  document.getElementById('hidDeviceInfo').textContent = '';
+  hidLog('Disconnected.');
+};
+
+document.getElementById('hidOpenLockBtn').onclick = async ()=>{
+  if(!hidDevice) return;
+  // Best-known HID++1.0 command replicating Logitech's discontinued Connection
+  // Utility: SET_REGISTER (0x80) on the receiver's connection register (0xB2),
+  // param 0x01 = open the pairing lock for ~30s. Device index 0xFF = receiver.
+  const data = new Uint8Array([0xFF, 0x80, 0xB2, 0x01, 0x00, 0x00]);
+  try{
+    await hidDevice.sendReport(0x10, data);
+    hidLog('→ sent open-lock (10 FF 80 B2 01 00 00). Receiver should enter pairing mode for ~30s — power the keyboard or mouse on now.');
+  }catch(err){
+    hidLog('Send failed: '+err.message+' — this receiver may need a different report ID or register. Try the custom command box.');
+  }
+};
+
+document.getElementById('hidSendCustomBtn').onclick = async ()=>{
+  if(!hidDevice) return;
+  const raw = document.getElementById('hidCustomBytes').value.trim();
+  if(!raw) return;
+  try{
+    const bytes = raw.split(/\s+/).map(h=>parseInt(h,16));
+    if(bytes.some(isNaN)) throw new Error('invalid hex byte');
+    await hidDevice.sendReport(0x10, new Uint8Array(bytes));
+    hidLog('→ sent custom: 10 '+raw.toUpperCase());
+  }catch(err){
+    hidLog('Send failed: '+err.message);
+  }
+};
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
